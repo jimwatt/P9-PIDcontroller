@@ -12,7 +12,13 @@ PID::PID(const std::vector<double>& K) :
 
 double PID::getControl(const double error) {
 
-	twiddler_.updateError(error);
+	const bool KisUpdated = twiddler_.updateError(error,K_);
+	
+	if(KisUpdated) {
+		std::cout << "NEW COEFF : " << K_[0] << "  " << K_[1]  << "   " << K_[2]  << std::endl;
+		integrated_error_ = 0.0;
+		previous_error_ = 0.0;
+	}
 
 	const double Derror = (error - previous_error_);
 	
@@ -32,15 +38,5 @@ double PID::getControl(const double error) {
 
 
 }
-
-void PID::initialize(const std::vector<double>& K) {
-
-	K_ = K;
-
-	integrated_error_ = 0.0;
-	previous_error_ = 0.0;
-
-}
-
 
 

@@ -35,11 +35,9 @@ int main()
 
   const double speed_set_point = 40.0;
 
-  std::cout << "steer " << std::endl;
   const std::vector<double> K_steering{0.2,0.008,3.0};
   PID steering_pid(K_steering);
 
-  std::cout << "throttle " << std::endl;
   const std::vector<double> K_throttle{0.2,0.004,3.0};
   PID throttle_pid(K_throttle);
 
@@ -68,7 +66,7 @@ int main()
           const double steer_value = steering_pid.getControl(cross_track_error);
     
           // DEBUG
-          std::cout << "desired_speed : " << desired_speed << "   angle: " << angle << std::endl;
+          // std::cout << "desired_speed : " << desired_speed << "   angle: " << angle << std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;

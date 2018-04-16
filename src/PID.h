@@ -13,8 +13,6 @@ public:
 
   double getControl(const double error);
 
-  void initialize(const std::vector<double>& K);
-
 
 private:
 

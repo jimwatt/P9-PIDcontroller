@@ -9,10 +9,12 @@ public:
   Twiddle(const int num_settle_steps, const int num_record_steps, 
 	const std::vector<double>& p);
 
-  void updateError(const double error);
+  bool updateError(const double error, std::vector<double>& Kvals);
 
 
 private:
+
+	bool doTwiddle(std::vector<double>& Kvals);
 
 	const int num_settle_steps_;
 	const int num_record_steps_;
@@ -24,6 +26,9 @@ private:
   int steps_since_reset_;
   double total_error_;
   double best_error_;
+
+  int status_;
+  int current_twiddle_dimension_;
 
 
 };

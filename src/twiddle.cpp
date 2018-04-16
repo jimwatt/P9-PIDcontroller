@@ -10,7 +10,9 @@ Twiddle::Twiddle(const int num_settle_steps, const int num_record_steps,
 	p_(p),
 	steps_since_reset_(0),
 	total_error_(0.0),
-	best_error_(std::numeric_limits<double>::infinity()) {
+	best_error_(std::numeric_limits<double>::infinity()),
+	status_(1),
+	current_twiddle_dimension_(0) {
 
 	dp_.clear();
 	for(size_t ii=0;ii<p.size();++ii) {
@@ -20,40 +22,96 @@ Twiddle::Twiddle(const int num_settle_steps, const int num_record_steps,
 
 }
 
+double sum(std::vector<double>& v) {
+	double s = 0.0;
+	for(size_t ii=0;ii<v.size();++ii) {
+		s+=v[ii];
+	}
+	return s;
+}
 
-void Twiddle::updateError(const double error) {
+
+bool Twiddle::updateError(const double error, std::vector<double>& Kvals) {
+
+	bool KisUpdated = false;
 
 	++steps_since_reset_;
 
 	if(steps_since_reset_>num_record_steps_+num_record_steps_) {
-		std::cout << "adjusting coefficients ..." << std::endl;
-		std::cout << "total_error : " << total_error_ << std::endl;
+		// std::cout << "adjusting coefficients ..." << std::endl;
+		// std::cout << "total_error : " << total_error_ << std::endl;
 
-
-
+		KisUpdated = doTwiddle(Kvals);
 
 		steps_since_reset_ = 0;
 		total_error_ = 0.0;
 	}
 
 	if(steps_since_reset_<num_settle_steps_) {
-		std::cout << "settling ..." << std::endl;
+		// std::cout << "settling ..." << std::endl;
 	}
 	else {
-		std::cout << "recording ..." << std::endl;
+		// std::cout << "recording ..." << std::endl;
 		total_error_ += error;
 	}
 
-
+	return KisUpdated;
 
 }
 
-// void Twiddle::twiddle(): 
+bool Twiddle::doTwiddle(std::vector<double>& Kvals) {
+
+	const int numdim = Kvals.size();
+    
+    if(status_== 0) {  // We are already done
+    	return false;
+    }
+
+    if(sum(dp_)<1e-4) {  // Hooray, we are done!
+		status_ = 0;
+		return false;
+	}
     
 
-//     it = 0
-//     while sum(dp) > tol:
-        
+    if(status_==1) {		// we just finished the first call to robot
+    	
+    	if(total_error_ < best_error_) {
+        	best_error_ = total_error_;
+            dp_[current_twiddle_dimension_] *= 1.1;
+            current_twiddle_dimension_ = (current_twiddle_dimension_+1) % numdim;
+            p_[current_twiddle_dimension_] += dp_[current_twiddle_dimension_];
+            status_ = 1;		//just for readibility
+        }
+        else {
+            p_[current_twiddle_dimension_] -= 2 * dp_[current_twiddle_dimension_];
+            status_ = 2;
+        }
+    }
+    else if(status_==2) {	// we just finished the second call to robot
+		if(total_error_ < best_error_) {
+			best_error_ = total_error_;
+			dp_[current_twiddle_dimension_] *= 1.1;
+		}
+		else {
+			p_[current_twiddle_dimension_] += dp_[current_twiddle_dimension_];
+			dp_[current_twiddle_dimension_] *= 0.9;
+		}
+		current_twiddle_dimension_ = (current_twiddle_dimension_+1) % numdim;
+		p_[current_twiddle_dimension_] += dp_[current_twiddle_dimension_];
+        status_ = 1;
+    }
+    
+    Kvals = p_;
+
+    std::cout << "sum(dp) : " << sum(dp_) << std::endl;
+    return true;
+
+}
+
+
+
+// while sum(dp) > tol:
+//         print("Iteration {}, best error = {}".format(it, best_err))
 //         for i in range(len(p)):
 //             p[i] += dp[i]
 //             robot = make_robot()
@@ -73,6 +131,3 @@ void Twiddle::updateError(const double error) {
 //                 else:
 //                     p[i] += dp[i]
 //                     dp[i] *= 0.9
-//         it += 1
-//     return p
-
