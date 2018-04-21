@@ -2,22 +2,24 @@
 #include <iomanip>
 #include "PID.h"
 
-PID::PID(const std::vector<double>& K) :
+PID::PID(const std::vector<double>& K, const bool use_twiddler) :
 	K_(K), 
+	use_twiddler_(use_twiddler),
 	integrated_error_(0.0), 
 	previous_error_(0.0),
-	twiddler_(50,50,K)  {
+	twiddler_(100,500,K)  {
 
 }
 
 double PID::getControl(const double error) {
 
-	const bool KisUpdated = twiddler_.updateError(error,K_);
+	if(use_twiddler_) {
+		const bool KisUpdated = twiddler_.updateError(error,K_);
 	
-	if(KisUpdated) {
-		std::cout << "NEW COEFF : " << K_[0] << "  " << K_[1]  << "   " << K_[2]  << std::endl;
-		integrated_error_ = 0.0;
-		previous_error_ = 0.0;
+		if(KisUpdated) {
+			std::cout << "\nNEW COEFF : " << K_[0] << "  " << K_[1]  << "   " << K_[2]  << std::endl;
+			integrated_error_ = 0.0;
+		}
 	}
 
 	const double Derror = (error - previous_error_);

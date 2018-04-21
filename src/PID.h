@@ -9,7 +9,7 @@ public:
   /*
   * Constructor
   */
-  PID(const std::vector<double>& K);
+  PID(const std::vector<double>& K, const bool use_twiddler);
 
   double getControl(const double error);
 
@@ -17,13 +17,12 @@ public:
 private:
 
   /*
-  * Coefficients
+  * PID Coefficients
   */ 
   std::vector<double> K_;
+  const bool use_twiddler_;
 
-      /*
-  * State variables
-  */
+
   double integrated_error_;
   double previous_error_;
 

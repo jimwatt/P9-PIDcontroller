@@ -33,13 +33,13 @@ int main()
 {
   uWS::Hub h;
 
-  const double speed_set_point = 40.0;
+  const double speed_set_point = 45.0;
 
-  const std::vector<double> K_steering{0.2,0.008,3.0};
-  PID steering_pid(K_steering);
+  const std::vector<double> K_steering{0.2,  0.004,  3.0};
+  PID steering_pid(K_steering,false);
 
   const std::vector<double> K_throttle{0.2,0.004,3.0};
-  PID throttle_pid(K_throttle);
+  PID throttle_pid(K_throttle,false);
 
 
   h.onMessage([&speed_set_point,&throttle_pid,&steering_pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -60,13 +60,13 @@ int main()
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
           const double desired_speed = std::max(0.0,speed_set_point - 2.0*std::abs(angle));
+          
           const double speed_error = speed - desired_speed;
+          
           const double throttle_value = throttle_pid.getControl(speed_error);
 
           const double steer_value = steering_pid.getControl(cross_track_error);
     
-          // DEBUG
-          // std::cout << "desired_speed : " << desired_speed << "   angle: " << angle << std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;

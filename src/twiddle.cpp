@@ -1,12 +1,13 @@
 #include <iostream>
 #include <limits>
+#include <cmath>
 #include "twiddle.hpp"
 
 Twiddle::Twiddle(const int num_settle_steps, const int num_record_steps, 
 	const std::vector<double>& p) :
 	num_settle_steps_(num_settle_steps),
 	num_record_steps_(num_record_steps),
-	tolerance_(0.2),
+	tolerance_(0.01),
 	p_(p),
 	steps_since_reset_(0),
 	total_error_(0.0),
@@ -15,9 +16,9 @@ Twiddle::Twiddle(const int num_settle_steps, const int num_record_steps,
 	current_twiddle_dimension_(0) {
 
 	dp_.clear();
-	for(size_t ii=0;ii<p.size();++ii) {
-		dp_.push_back(0.001);
-	}
+	dp_.push_back(0.2);
+	dp_.push_back(0.003);
+	dp_.push_back(2.9);
 
 
 }
@@ -39,7 +40,7 @@ bool Twiddle::updateError(const double error, std::vector<double>& Kvals) {
 
 	if(steps_since_reset_>num_record_steps_+num_record_steps_) {
 		// std::cout << "adjusting coefficients ..." << std::endl;
-		// std::cout << "total_error : " << total_error_ << std::endl;
+		std::cout << "total_error : " << total_error_ << std::endl;
 
 		KisUpdated = doTwiddle(Kvals);
 
@@ -52,7 +53,7 @@ bool Twiddle::updateError(const double error, std::vector<double>& Kvals) {
 	}
 	else {
 		// std::cout << "recording ..." << std::endl;
-		total_error_ += error;
+		total_error_ += fabs(error);
 	}
 
 	return KisUpdated;
@@ -67,7 +68,7 @@ bool Twiddle::doTwiddle(std::vector<double>& Kvals) {
     	return false;
     }
 
-    if(sum(dp_)<1e-4) {  // Hooray, we are done!
+    if(sum(dp_)<tolerance_) {  // Hooray, we are done!
 		status_ = 0;
 		return false;
 	}
@@ -81,6 +82,7 @@ bool Twiddle::doTwiddle(std::vector<double>& Kvals) {
             current_twiddle_dimension_ = (current_twiddle_dimension_+1) % numdim;
             p_[current_twiddle_dimension_] += dp_[current_twiddle_dimension_];
             status_ = 1;		//just for readibility
+            std::cout << "BEST ERROR : " << best_error_ << std::endl;
         }
         else {
             p_[current_twiddle_dimension_] -= 2 * dp_[current_twiddle_dimension_];
@@ -91,6 +93,7 @@ bool Twiddle::doTwiddle(std::vector<double>& Kvals) {
 		if(total_error_ < best_error_) {
 			best_error_ = total_error_;
 			dp_[current_twiddle_dimension_] *= 1.1;
+			std::cout << "BEST ERROR : " << best_error_ << std::endl;
 		}
 		else {
 			p_[current_twiddle_dimension_] += dp_[current_twiddle_dimension_];
@@ -103,7 +106,8 @@ bool Twiddle::doTwiddle(std::vector<double>& Kvals) {
     
     Kvals = p_;
 
-    std::cout << "sum(dp) : " << sum(dp_) << std::endl;
+    std::cout << current_twiddle_dimension_ << " \tsum(dp) : " << sum(dp_) << std::endl;
+    std::cout << "dp : " << dp_[0] << " \t" << dp_[1] << " \t" << dp_[2] << std::endl;
     return true;
 
 }

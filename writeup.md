@@ -1,40 +1,73 @@
-## Localization with the Particle Filter
+## PID Control
 ---
 
-**Kidnapped Vehicle Localization Project**
+**PID Control of a Simulated Vehicle**
 
 The goals / steps of this project are the following:
 
-* Implement a particle filter to estimate the location of a moving vehicle given an *a priori* map of known landmarks and a stream of noisy measurements of those landmarks.
+* Implement a PID controller to provide steering controls for a simulated autonomous vehicle.  The vehicle must safely navigate itself around the track using only cross track error as input.
 
-[//]: # "Image References"
-[image1]: ./particlefilter.png
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-![alt text][image1]
+### 1. Compilation###
 
-**1. Accuracy.**
+**Code should compile.**
 
-- Done.  See figure above.
-- RMSE tracking errors are [X : 0.133, Y : 0.124, YAW : 0.004]
+- Done.  See compile instructions in the [README.md](README.md) file.
 
-**2. Performance.**
+###2. Implementation###
 
-- Done.  See figure above.
-- System time for execution is 97.04 seconds.
+**PID procedure follows what was taught in the lessons.**
 
-**3. The Code Implements the Particle Filter**
+- Done.  See [./src/PID.cpp](./src/PID.cpp).  For a given cross track error, $c_k$, at time $k$, the control input at each time step is computed as
 
-* The particle filter algorithm is implemented in [./src/particle_filter.cpp](./src/particle_filter.cpp).
-* The main functional components are *predict*, *update weights*, and *resample*.
+  $$ u_k = -K_p\cdot c_k - K_d\cdot D_k - K_i\cdot E_k $$
 
----
+  where
 
-### Discussion
+  $$D_k := c_k - c_{k-1}$$
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  
+  $$E_k:=\sum_{i=0}^k c_k$$
 
-* The particle filter was straightforward to implement and worked well.  No major algorithmic improvements were required to improve the accuracy and execution times.
-* Once the particle filter was implemented, I did try to improve runtime performance using several Nearest Neighbor libraries (`ANN`, `FLANN`,  and `NABO`, for example.)  These libraries index the map landmark locations into a kd-tree, allowing fast look up of nearest neighbors for a query point. Unfortunately, since the map did not have many landmarks (only 42), these approaches did not provide any appreciable acceleration.  In a very dense map, with hundreds of thousands of points, these approaches will be indispensable.
-* An improvement to the current code would be to assign observations to landmarks using a 2D assignment solver to optimize global cost (using the Jonker-Volgenant-Castanon algorithm, for example) rather than simply choosing nearest neighbors.
+  and $K_p$, $K_d$, and $K_i$ are the _a priori_ control constants. 
 
+### 3. Reflection ###
+
+**Effect of each of the PID components**
+
+- **Proportional Control (P)**:  Using just proportional control, we see that the steering behavior oscillates and quickly becomes unstable.
+
+  See [./videos/p.mp4](./videos/p.mp4).
+
+- **Derivative Control (D):**  Adding derivative control helps to stabilize the unstable behavior observed previously.  The car can now reasonably track the centerline of the road without wild oscillations.
+
+  See [./videos/pd.mp4](./videos/pd.mp4).
+
+- **Integrator Control (I):**  Adding an integrator control term helps to correct steering bias.  As the error accumulates over time, the control grows stronger.
+
+  See [./videos/pid.mp4](./videos/pid.mp4).
+
+**How were final parameters chosen**
+
+- I tried several approaches to finding good control parameters.
+- First, I did a little guess and check to see how each of the terms influenced steering behavior over short runs.  This helped to get a feel for their relative sizes, importance, and influence on steering behavior.
+- Second, I also implemented the *Twiddle* approach as outlined in the lesson.  I built a `Twiddle` class that "watched" the simulation to keep track of total error, and adjusted the control parameters by coordinate descent.  
+  Unfortunately, I did not obtain great success with this approach for the following three reasons.  
+  1. Twiddle can get stuck in local minima.
+  2. Twiddle optimized to find very small error control solutions for which the steering behavior was actually highly oscillatory with high frequency.  The constant steering slows the car down (since steering acts like braking on the car) so that cross track error can actually be made quite small, however, a human would never want to be a passenger in that car.  See [./videos/twiddle.mp4](./videos/twiddle.mp4).
+  3. The Total Error metric for comparing performance of control parameters is very noisy.  Even after allowing long settling time (100 time steps) and long record time (500 time steps) the total error values still have a large variance.
+- Finally, I used the insights from manual experimentation and human observation of the driving behavior to choose the parameters. 
+
+### 4. Simulation###
+
+**Successfully drive a lap around the track**
+
+- **Steering Control**: Done.  See [./videos/pid.mp4](./videos/pid.mp4).
+
+- **Throttle Control**: Also, I implemented a throttle controller.  The throttle controller tries to maintain a high speed along the straight portions of the track, and then slow down while cornering.  
+
+  If the current steering angle is $\theta$, then the desired speed is
+
+  $$\mathrm{v}_\text{desired} = 45 - 2|\theta|$$
+
+  A recording of the racecar with both steering and throttle control can be seen in [./videos/throttle.mp4](./videos/throttle.mp4).
 
